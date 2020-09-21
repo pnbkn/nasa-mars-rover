@@ -1,62 +1,42 @@
-let store = {
+
+let store = Immutable.Map({ 
     id: 5,
     photos: '',
-    rovers: [{id: 5, name: 'Curiosity'}, {id: 6, name: 'Opportunity'}, {id: 7, name: 'Spirit'}],
-}
+    rovers: [{id: 5, name: 'Curiosity'}, {id: 6, name: 'Opportunity'}, {id: 7, name: 'Spirit'}]
+})
 
-// let store = Immutable.fromJS({ 
-//     id: 5,
-//     photos: '',
-//     rovers: Immutable.fromJS(['Curiosity', 'Opportunity', 'Spirit'])
-// })
-
-// function updateStore(state, newState) {
-//     store = state.merge(newState)
-//     render(root, store)
-// }    
-//console.log(store.getIn(['user', 'name']))
-// add our markup to the page
+function updateStore(state, newState) {
+    store = state.merge(newState)
+    render(root, store)
+}   
 
 const root = document.getElementById('root')
-
-const updateStore = (store, newState) => {
-    store = Object.assign(store, newState)
-    render(root, store)
-    console.log("STORE ", store)
-}
-
-// const updateStore = (state, newState) => {
-//     store = state.merge(newState)
-//     render(root, store)
-//     console.log("STORE ", store)
-// }
 
 const render = async (root, state) => {
     root.innerHTML = App(state)
 }
 
 
-// create content
+// Set up Page with Nav and Photo Grid
 const App = (state) => {
-    console.log("APP ", state)
-    let { rovers, photos, id} = state;
+    let rovDetails = JSON.parse(JSON.stringify(state))
+    let photos = rovDetails.photos.photos;
     const statusBar = document.querySelector('.status-bar');
-    console.log("STATUS ", id)
     return `
         <nav>
         <ul class="navigation">
-            ${NavLinks(rovers)}
+            ${NavLinks(state.get("rovers"))}
         </ul>
         </nav>
         <header>
             <div class="status-bar">
-            ${photoImages(photos, "info", id)}
+            ${photoImages(photos, "info", state.get("id"))}
             </div>
         </header>
         <main>
             <section>
                 <ul class="grid">
-                ${photoImages(photos, "photos", id)}
+                ${photoImages(photos, "photos", state.get("id"))}
                 </ul>
             </section>
         </main>
@@ -70,45 +50,43 @@ window.addEventListener('load', () => {
 })
 
 // ------------------------------------------------------  COMPONENTS
+// Create the Nav Links
+const NavLinks = (rovers)=> rovers.map(rover => (`<li class="rover" id=${rover.id} onclick="displayRover(${rover.id})"><h2>${rover.name}</h2></li>`)).join("")
 
-const NavLinks = (rovers)=> rovers.map(rover => (`<li class="rover" id=${rover.name} onclick="displayRover(${rover.id})"><h2>${rover.name}</h2></li>`)).join("")
-
-
+//When called by nav link click, grabs the photo for that particular rover, using the Rover ID
 const displayRover = (id)=>{
     const statusBar = document.querySelector('.rover');
     getPhotos(store, id);
     return(statusBar.setAttribute("id", id))
 }
 
-const photoImages = (photosArr, type, id) => {
-
-    const {photos} = photosArr;
+// Pulls in the Rover Info and Photos to the UI
+const photoImages = (state, type, id) => {
     const statusBar = document.querySelector('.status-bar');
     const grid = document.querySelector('.grid');
-    if(!photosArr){
+    if(!state){
         getPhotos(store, id);
+        
     }
-    
-    const mapArr = photos.photos;
-  
         if(type === "info"){
             return(`
             <div class="sub-nav">
-                <h1>${mapArr[0].rover.name}</h1><br/>
+                <h1>${state.photos[0].rover.name}</h1><br/>
                 <div class="status">
-                    <h4>Status: <span>${mapArr[0].rover.status}</span> </h4> |
-                    <h4>Landing Date: <span>${mapArr[0].rover.landing_date}</span></h4> |
-                    <h4>Launch Date: <span>${mapArr[0].rover.launch_date}</span></h4>
+                    <h4>Status: <span>${state.photos[0].rover.status}</span> </h4>
+                    <h4>Landing Date: <span>${state.photos[0].rover.landing_date}</span></h4>
+                    <h4>Launch Date: <span>${state.photos[0].rover.launch_date}</span></h4>
                 </div>
             </div>
             `)
         }
         else{
             return (
-                mapArr.map(photo => {
+                state.photos.map(photo => {
                     return(`
                     <li>
-                    <img src="${photo.img_src}" />
+                    <img src="${photo.img_src}" /><br/>
+                    <h4>Photo Date: ${photo.earth_date}</h4>
                     </li>`)
                 }).join("")
             )
@@ -119,64 +97,9 @@ const photoImages = (photosArr, type, id) => {
 
 // ------------------------------------------------------  API CALLS
 
-const getRovers = (state) => {
-    let { rovers } = state
-
-    fetch(`http://localhost:3000/rovers`)
-        .then(res => res.json())
-        .then(rovers => updateStore(store, { rovers }))
-
-    return data
-}
-
-
+// Fetch the photos from the API
 const getPhotos = (state, id) => {
-    let { photos } = state;
-    // let id = 5;
-    console.log("PHST ", photos)
-    fetch(`http://localhost:3000/photos/${id}`)
-        .then(res => res.json())
-        .then(photos => updateStore(store, { photos }))
-    return photos
+   fetch(`http://localhost:3000/photos/${id}`)
+    .then(res => res.json())
+    .then(photos => updateStore(store, { photos }))
 }
-
-// Pure function that renders conditional information -- THIS IS JUST AN EXAMPLE, you can delete it.
-// const Greeting = (name) => {
-//     if (name) {
-//         return `
-//             <h1>Welcome, ${name}!</h1>
-//         `
-//     }
-
-//     return `
-//         <h1>Hello!</h1>
-//     `
-// }
-
-// Example of a pure function that renders infomation requested from the backend
-// const ImageOfTheDay = (apod) => {
-
-//     // If image does not already exist, or it is not from today -- request it again
-//     const today = new Date()
-//     const photodate = new Date(apod.date)
-//     console.log(photodate.getDate(), today.getDate());
-
-//     console.log(photodate.getDate() === today.getDate());
-//     if (!apod || apod.date === today.getDate() ) {
-//         getImageOfTheDay(store)
-//     }
-
-//     // check if the photo of the day is actually type video!
-//     if (apod.media_type === "video") {
-//         return (`
-//             <p>See today's featured video <a href="${apod.url}">here</a></p>
-//             <p>${apod.title}</p>
-//             <p>${apod.explanation}</p>
-//         `)
-//     } else {
-//         return (`
-//             <img src="${apod.image.url}" height="350px" width="100%" />
-//             <p>${apod.image.explanation}</p>
-//         `)
-//     }
-// }
