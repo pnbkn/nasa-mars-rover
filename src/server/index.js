@@ -12,7 +12,8 @@ app.use(bodyParser.json())
 app.use('/', express.static(path.join(__dirname, '../public')))
 
 //Set up API for photos and filter by Rover ID
-app.get('/photos/:id', async(req, res) => {s
+app.get('/photos/:id', async(req, res) => {
+ 
     let name = "";
     if(req.params.id === '5'){
         name = "curiosity";
